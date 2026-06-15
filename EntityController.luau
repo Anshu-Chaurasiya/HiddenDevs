@@ -5,17 +5,23 @@ type Modes = "Attack"| "Chaser" | "Wanderer" | "Useless"
 
 function EntityController.new(entity : Humanoid, behavior : Modes)
 	local self = setmetatable({}, EntityController)
-	
+
 	entity:SetAttribute("Behavior", behavior)
 	self.Name = nil
 	self.entity = entity
 	self.Behavior = self.entity:GetAttribute("Behavior")
 	self.Parent = entity.Parent
 	self.Running = false
-	
+
 	return self
 end
 
+--These functions  are for Manually Changing things and properties
+
+
+--Normal functions for the entity
+
+--Plays the animation
 
 function EntityController:PlayAnimation(animation : Animation, wantLooped : boolean, priority : Enum.AnimationPriority)
 	local Animator = self.entity:FindFirstChild("Animator")
@@ -27,11 +33,15 @@ function EntityController:PlayAnimation(animation : Animation, wantLooped : bool
 	AnimaTrack:Play()
 end
 
+--Stops the animation
+
 function EntityController:StopAnimation(animation : Animation)
 	local Animator = self.entity:FindFirstChild("Animator")
 	local AnimaTrack = Animator:FindFirstChildOfClass("AnimationTrack")
 	AnimaTrack:Stop()
 end
+
+--Sets Name of the entity
 
 function EntityController:SetName(name : string)
 	self.Name = name
@@ -39,11 +49,15 @@ function EntityController:SetName(name : string)
 	print("Successfull Name Set")
 end
 
+--Change the behavior of the entity
+
 function EntityController:ChangeBehavior(behavior : Modes)
 	self.Behavior = behavior	
 	self.entity:SetAttribute("Behavior", behavior)
 	print("Succesfull Behavior Change")
 end
+
+--Destroys the entity
 
 function EntityController:Destroy()
 	if self.entity then
@@ -55,13 +69,19 @@ function EntityController:Destroy()
 	print("Successful Destroy")
 end
 
+--Sets or Changes Attribute Value
+
 function EntityController:SetOrChangeAttribute(attribute :string, Value: any)
 	self.entity:SetAttribute(attribute, Value)
 end
 
+--Gets Attribute Value
+
 function EntityController:GetAttribute(attribute :string)
 	return self.entity:GetAttribute(attribute)
 end
+
+--Makes him Die
 
 function EntityController:Die()
 	self.entity.Health = 0 
@@ -69,11 +89,15 @@ function EntityController:Die()
 	print("Entity Died")
 end
 
+--Gives Damage to the entity
+
 function EntityController:TakeDamage(Value)
 	if self.entity.Health > 0 then 
 		self.entity:TakeDamage(Value)
 	end
 end
+
+--Heals the entity
 
 function EntityController:Heal(Value)
 	if self.entity.Health > 0 then 
@@ -81,36 +105,47 @@ function EntityController:Heal(Value)
 	end
 end
 
+--Changes WalkSpeed	
+
 function EntityController:ChangeSpeed(Value)
 	self.entity.WalkSpeed = Value
 end
+
+--Changes Jump Power
 
 function EntityController:ChangeJumpPower(Value)
 	self.entity.JumpPower = Value
 end
 
+--Changes Jump Height
+
 function EntityController:ChangeJumpHeight(Value)
 	self.entity.JumpHeight = Value
 end
 
+--Gets Health Percentage
+
 function EntityController:GetHealthPercent()
 	return (self.entity.Health / self.entity.MaxHealth) * 100
 end
+
+--Changes MaxHealth
 
 function EntityController:SetMaxHealth(value)
 	self.entity.MaxHealth = value
 	self.entity.Health = math.min(self.entity.Health, value)
 end
 
+--Functions Only for Behavior type "Attack" and "Chaser"
 
 function EntityController:FindNearestEnemy(maxdistance : number)
 	if self.Behavior == "Attack" or self.Behavior == "Chaser" then
 		local OwnCharacter = self.Parent
 		local OwnHumanoidRootPart = OwnCharacter:FindFirstChild("HumanoidRootPart")
-		
+
 		local PlayersInRange = {}
 		local Players = game:GetService("Players")
-		
+
 		for _, player in pairs(Players:GetPlayers()) do
 			local Character = player.Character or player.CharacterAdded:Wait()
 			if Character then
@@ -123,48 +158,50 @@ function EntityController:FindNearestEnemy(maxdistance : number)
 				end
 			end
 		end
-		
+
 		table.sort(PlayersInRange, function(a,b)
 			return a[2] < b[2]
 		end)
-		
+
 		if #PlayersInRange > 0 then
 			return PlayersInRange[1][1]
 		else
 			return nil
 		end
-		
-		
+
+
 	else
 		print("Wrong Behavior Type")
 	end
 end
 
+--Function for all Behaviors except "Useless"
 
 function EntityController:Roam(vectors : Vector3)
 	self.entity:MoveTo(vectors)
 end
 
+--function for Behavior type "Attack"
 
 function EntityController:Attack(damageValue : number)
 	if self.Behavior == "Attack" then
-		
+
 		local OwnCharacter = self.Parent
 		local OwnHumanoidRootPart = OwnCharacter:FindFirstChild("HumanoidRootPart")
 		local player = self:FindNearestEnemy(50)
-		
+
 		if not player then return end 
-		
+
 		local Humanoid = player.Character:FindFirstChild("Humanoid")
 		local HumanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
 		local rayacastParams = RaycastParams.new()
 		rayacastParams.FilterType = Enum.RaycastFilterType.Exclude
 		rayacastParams.FilterDescendantsInstances = {self.Parent}
-		
+
 		local direction = (HumanoidRootPart.Position - OwnHumanoidRootPart.Position).Unit * 4
-		
+
 		local raycastResult = workspace:Raycast(OwnHumanoidRootPart.Position, direction , rayacastParams)
-		
+
 		if raycastResult then
 			local hitpart = raycastResult.Instance
 			if hitpart then
@@ -185,6 +222,7 @@ function EntityController:Attack(damageValue : number)
 	end
 end
 
+--function for Behavior type "Chaser" and "Attack"
 
 function EntityController:MoveToPlayer(player)
 	local Character = player.Character or player.CharacterAdded:Wait()
@@ -199,6 +237,7 @@ function EntityController:MoveToPlayer(player)
 	end
 end
 
+--function for Behavior type "Wanderer"
 
 function EntityController:RoamAround(target: BasePart, radius: number)
 	local randomX = math.random(-radius, radius)
@@ -209,6 +248,9 @@ function EntityController:RoamAround(target: BasePart, radius: number)
 	self.entity:MoveTo(destination)
 end
 
+--End of Manual Functions
+
+--Automatic Functions
 
 function EntityController:Start()
 	if self.Running then return end
@@ -242,6 +284,7 @@ end
 function EntityController:Stop()
 	self.Running = false
 end
+
 
 return EntityController
 
